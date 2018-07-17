@@ -35,17 +35,16 @@ exports.handler = (event, context) => {
     }));
 
     return Promise.all(promises).then((responses) => {
-        const[results] = responses;
-        let promises = [];
+        const[resultsOuter] = responses;
+        let promisesInner = [];
         var streams = {
-            url: 'https://api.twitch.tv/helix/streams?game_id=' + res.id,
+            url: 'https://api.twitch.tv/helix/streams?game_id=' + JSON.parse(resultsOuter).data[0].id,
             headers: {
                 'Client-ID': process.env.CLIENT_ID
             }
-        }
-        promises.push(request(streams).promise().then((res) => {
-            res.box_art_url = responses.box_art_url;
-            res.name = responses.name;
+        };
+        promisesInner.push(request(streams).promise().then((res) => {
+            return res;
         }).catch(function (err) {
             return Promise.reject({
                 statusCode: err.statusCode,
@@ -53,8 +52,13 @@ exports.handler = (event, context) => {
             });
         }));
 
-        return Promise.all(promises).then((responses) => {
+        return Promise.all(promisesInner).then((responses) => {
+            let parsed = JSON.parse(resultsOuter);
             const[results] = responses;
+            const retObj = {
+              "game": parsed,
+              "streams": results
+            };
             return context.succeed({
                 statusCode: 200,
                 body: JSON.stringify(results),
@@ -65,6 +69,6 @@ exports.handler = (event, context) => {
                     'Access-Control-Allow-Origin': '*'
                 }
             });
-        }
+        });
     });
-}
+};
