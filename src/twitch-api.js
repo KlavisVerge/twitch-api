@@ -36,15 +36,35 @@ exports.handler = (event, context) => {
 
     return Promise.all(promises).then((responses) => {
         const[results] = responses;
-        return context.succeed({
-            statusCode: 200,
-            body: JSON.stringify(results),
+        let promises = [];
+        var streams = {
+            url: 'https://api.twitch.tv/helix/streams?game_id=' + res.id,
             headers: {
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Methods': 'POST',
-                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,XAmz-Security-Token',
-                'Access-Control-Allow-Origin': '*'
+                'Client-ID': process.env.CLIENT_ID
             }
-        });
+        }
+        promises.push(request(streams).promise().then((res) => {
+            res.box_art_url = responses.box_art_url;
+            res.name = responses.name;
+        }).catch(function (err) {
+            return Promise.reject({
+                statusCode: err.statusCode,
+                message: 'Error interacting with Twitch API.'
+            });
+        }));
+
+        return Promise.all(promises).then((responses) => {
+            const[results] = responses;
+            return context.succeed({
+                statusCode: 200,
+                body: JSON.stringify(results),
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Access-Control-Allow-Methods': 'POST',
+                    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,XAmz-Security-Token',
+                    'Access-Control-Allow-Origin': '*'
+                }
+            });
+        }
     });
 }
