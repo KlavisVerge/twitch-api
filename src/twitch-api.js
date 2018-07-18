@@ -61,7 +61,7 @@ exports.handler = (event, context) => {
             };
             return context.succeed({
                 statusCode: 200,
-                body: JSON.stringify(results),
+                body: JSON.stringify(retObj),
                 headers: {
                     'Content-Type': 'application/json',
                     'Access-Control-Allow-Methods': 'POST',
