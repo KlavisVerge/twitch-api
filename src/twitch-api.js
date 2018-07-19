@@ -34,41 +34,38 @@ exports.handler = (event, context) => {
         });
     }));
 
-    return Promise.all(promises).then((responses) => {
-        const[resultsOuter] = responses;
-        let promisesInner = [];
-        var streams = {
-            url: 'https://api.twitch.tv/helix/streams?game_id=' + JSON.parse(resultsOuter).data[0].id,
-            headers: {
-                'Client-ID': process.env.CLIENT_ID
-            }
-        };
-        promisesInner.push(request(streams).promise().then((res) => {
-            return res;
-        }).catch(function (err) {
-            return Promise.reject({
-                statusCode: err.statusCode,
-                message: 'Error interacting with Twitch API.'
-            });
-        }));
+    var liveStreams = {
+        url: 'https://api.twitch.tv/kraken/streams/?game=' + event.body.gameName,
+        headers: {
+            'Client-ID': process.env.CLIENT_ID
+        }
+    }
 
-        return Promise.all(promisesInner).then((responses) => {
-            let parsed = JSON.parse(resultsOuter);
-            const[results] = responses;
-            const retObj = {
-              "game": parsed,
-              "streams": results
-            };
-            return context.succeed({
-                statusCode: 200,
-                body: JSON.stringify(retObj),
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Access-Control-Allow-Methods': 'POST',
-                    'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,XAmz-Security-Token',
-                    'Access-Control-Allow-Origin': '*'
-                }
-            });
+    promises.push(request(liveStreams).promise().then((res) => {
+        return res;
+    }).catch(function (err) {
+        return Promise.reject({
+            statusCode: err.statusCode,
+            message: 'Error interacting with Twitch API.'
+        });
+    }));
+
+    return Promise.all(promises).then((responses) => {
+        const[resultsOuter, liveStreams] = responses;
+        let parsed = JSON.parse(resultsOuter);
+        const retObj = {
+            "game": parsed,
+            "liveStreams": liveStreams
+        };
+        return context.succeed({
+            statusCode: 200,
+            body: JSON.stringify(retObj),
+            headers: {
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Methods': 'POST',
+                'Access-Control-Allow-Headers': 'Content-Type,X-Amz-Date,Authorization,X-Api-Key,XAmz-Security-Token',
+                'Access-Control-Allow-Origin': '*'
+            }
         });
     });
 };
